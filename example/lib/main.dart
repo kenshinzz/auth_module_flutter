@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:auth_module/auth_module.dart';
 
 // Custom light theme for auth module
@@ -30,23 +30,29 @@ const _authDarkTheme = AuthTheme(
 );
 
 void main() {
-  // 1. Configure the auth module (theme will be set dynamically)
+  // 1. Configure the auth module
   AuthModule.configure(
     baseUrl: 'https://jsonplaceholder.typicode.com',
     loginEndpoint: '/posts',
   );
 
-  runApp(const MyApp());
+  runApp(
+    // 2. Wrap with ProviderScope and override auth providers
+    ProviderScope(
+      overrides: AuthModule.providerOverrides,
+      child: const MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   // Theme mode state
   ThemeMode _themeMode = ThemeMode.system;
 
@@ -54,26 +60,39 @@ class _MyAppState extends State<MyApp> {
     setState(() => _themeMode = mode);
   }
 
-  // 2. Create AuthRouter with your configuration
+  // Create AuthRouter with your configuration
   late final AuthRouter authRouter = AuthRouter(
     config: AuthRouterConfig(
       homePath: '/home',
       // Override title/subtitle (optional - uses l10n by default)
       loginTitle: 'Welcome Back',
       loginSubtitle: 'Sign in to your account',
-      publicPaths: ['/about', '/terms'],
+      publicPaths: ['/splash', '/about', '/terms'],
       onLoginSuccess: (user) => debugPrint('User logged in: ${user.email}'),
       onLogout: () => debugPrint('User logged out'),
     ),
     authRepository: AuthModule.instance.authRepository,
   );
 
-  // 3. Create GoRouter with auth integration
+  // Create GoRouter with auth integration
   late final GoRouter router = GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/splash',
     refreshListenable: authRouter,
     redirect: authRouter.redirect,
     routes: [
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => SplashScreen(
+          onInitComplete: () {
+            if (authRouter.isAuthenticated) {
+              context.go('/home');
+            } else {
+              context.go('/login');
+            }
+          },
+        ),
+      ),
       ...authRouter.routes,
       GoRoute(
         path: '/home',
@@ -105,12 +124,9 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeModeToAuthThemeMode(_themeMode),
     );
 
-    return MultiProvider(
-      providers: [
-        ...AuthModule.providers,
-        ChangeNotifierProvider<AuthRouter>.value(value: authRouter),
-      ],
-      // Provide auth theme with adaptive light/dark support
+    // Override authRouterProvider so context.authRouter works
+    return ProviderScope(
+      overrides: [authRouterProvider.overrideWithValue(authRouter)],
       child: AuthThemeProvider.adaptive(
         themeData: authThemeData,
         child: MaterialApp.router(
@@ -158,6 +174,159 @@ class _MyAppState extends State<MyApp> {
 // =============================================================================
 // Example Screens
 // =============================================================================
+
+class SplashScreen extends StatefulWidget {
+  final VoidCallback onInitComplete;
+
+  const SplashScreen({super.key, required this.onInitComplete});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack),
+      ),
+    );
+
+    _controller.forward();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Simulate initialization (loading config, checking auth, etc.)
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      widget.onInitComplete();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    const Color(0xFF0F172A),
+                    const Color(0xFF1E293B),
+                    const Color(0xFF334155),
+                  ]
+                : [
+                    const Color(0xFFF8FAFC),
+                    const Color(0xFFE2E8F0),
+                    primaryColor.withValues(alpha: 0.1),
+                  ],
+          ),
+        ),
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(scale: _scaleAnimation, child: child),
+              );
+            },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo/Icon
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: primaryColor,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryColor.withValues(alpha: 0.4),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 60,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // App Name
+                Text(
+                  'Auth Module',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Secure Authentication',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 48),
+                // Loading indicator
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

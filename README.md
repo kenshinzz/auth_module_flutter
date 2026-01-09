@@ -9,8 +9,9 @@ A reusable Flutter authentication module with a simple sign-in screen using MVVM
 - Form validation
 - Secure token storage
 - **Customizable theme** (colors, fonts, styling)
+- **Dark/Light mode support** (system, manual)
 - **Localization support** (English, Thai, Japanese, Chinese, Spanish)
-- MVVM architecture with Provider
+- MVVM architecture with **Riverpod**
 - GoRouter integration with auth guards
 - Easy to integrate into any Flutter project
 
@@ -44,14 +45,15 @@ In your `main.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:auth_module/auth_module.dart';
 
 void main() {
+  // 1. Configure the auth module
   AuthModule.configure(
     baseUrl: 'https://your-api.com',
     loginEndpoint: '/auth/login',
-    // Custom theme
+    // Optional: Custom theme
     theme: AuthTheme(
       primaryColor: Colors.indigo,
       inputBorderRadius: 12,
@@ -60,9 +62,10 @@ void main() {
     ),
   );
 
+  // 2. Wrap with ProviderScope and provide auth overrides
   runApp(
-    MultiProvider(
-      providers: AuthModule.providers,
+    ProviderScope(
+      overrides: AuthModule.providerOverrides,
       child: AuthModule.wrap(
         child: MaterialApp(
           // Add localization support
@@ -96,8 +99,8 @@ Navigator.push(
 ### 3. Access user data
 
 ```dart
-// Get the auth repository
-final authRepo = context.read<AuthRepository>();
+// Using Riverpod
+final authRepo = ref.read(authRepositoryProvider);
 
 // Check if logged in
 final isLoggedIn = await authRepo.isLoggedIn();
@@ -107,6 +110,10 @@ final user = await authRepo.getCurrentUser();
 
 // Logout
 await authRepo.logout();
+
+// Or use the async providers
+final isLoggedIn = ref.watch(isLoggedInProvider);
+final currentUser = ref.watch(currentUserProvider);
 ```
 
 ## Theme Customization
@@ -183,12 +190,15 @@ AuthModule.configure(
 Make sure to wrap your app with `AuthModule.wrap()`:
 
 ```dart
-AuthModule.wrap(
-  child: MaterialApp(
-    theme: ThemeData.light(),
-    darkTheme: ThemeData.dark(),
-    themeMode: ThemeMode.system,
-    // ...
+ProviderScope(
+  overrides: AuthModule.providerOverrides,
+  child: AuthModule.wrap(
+    child: MaterialApp(
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.system,
+      // ...
+    ),
   ),
 )
 ```
@@ -228,9 +238,6 @@ MaterialApp(
 // In your widgets
 final l10n = AuthL10n.of(context);
 Text(l10n?.signInTitle ?? 'Sign In');
-
-// Or use the extension
-final l10n = context.authL10n;
 ```
 
 ### Available Strings
@@ -252,6 +259,7 @@ final l10n = context.authL10n;
 ## GoRouter Integration
 
 ```dart
+// 1. Create AuthRouter
 final authRouter = AuthRouter(
   config: AuthRouterConfig(
     homePath: '/home',
@@ -262,6 +270,7 @@ final authRouter = AuthRouter(
   authRepository: AuthModule.instance.authRepository,
 );
 
+// 2. Create GoRouter with auth integration
 final router = GoRouter(
   initialLocation: '/home',
   refreshListenable: authRouter,
@@ -271,6 +280,39 @@ final router = GoRouter(
     GoRoute(path: '/home', builder: (_, __) => HomeScreen()),
   ],
 );
+
+// 3. Provide authRouter in your ProviderScope
+ProviderScope(
+  overrides: [
+    ...AuthModule.providerOverrides,
+    authRouterProvider.overrideWithValue(authRouter),
+  ],
+  child: MaterialApp.router(routerConfig: router),
+)
+
+// 4. Logout from anywhere using context extension
+await context.logout();
+```
+
+## Riverpod Providers
+
+The module exposes the following Riverpod providers:
+
+```dart
+// Auth repository - must be overridden via AuthModule.providerOverrides
+final authRepositoryProvider = Provider<AuthRepository>(...);
+
+// Login view model - auto-disposed
+final loginViewModelProvider = ChangeNotifierProvider.autoDispose<LoginViewModel>(...);
+
+// Check if logged in
+final isLoggedInProvider = FutureProvider.autoDispose<bool>(...);
+
+// Current user
+final currentUserProvider = FutureProvider.autoDispose<User?>(...);
+
+// Auth router - must be overridden in your app
+final authRouterProvider = Provider<AuthRouter>(...);
 ```
 
 ## API Requirements
@@ -311,6 +353,7 @@ lib/
     │   │   ├── app_es.arb
     │   │   └── generated/        # Generated l10n code
     │   ├── network/api_client.dart
+    │   ├── providers/auth_providers.dart  # Riverpod providers
     │   ├── router/auth_router.dart
     │   └── theme/auth_theme.dart
     ├── data/
@@ -325,6 +368,15 @@ lib/
         ├── screens/
         └── widgets/
 ```
+
+## Migration from Provider
+
+If you're upgrading from a previous version that used Provider:
+
+1. Replace `MultiProvider` with `ProviderScope`
+2. Replace `AuthModule.providers` with `AuthModule.providerOverrides`
+3. Replace `context.read<AuthRepository>()` with `ref.read(authRepositoryProvider)`
+4. Replace `Consumer<LoginViewModel>` with `ConsumerWidget` / `ref.watch(loginViewModelProvider)`
 
 ## License
 

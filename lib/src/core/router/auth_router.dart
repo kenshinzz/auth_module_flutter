@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import '../theme/auth_theme.dart';
 import '../../domain/entities/user.dart';
@@ -233,12 +233,44 @@ class AuthRouter extends ChangeNotifier {
   }
 }
 
-/// Extension for easy access to AuthRouter from context.
+/// Riverpod provider for AuthRouter.
+///
+/// This must be overridden in your ProviderScope with the actual AuthRouter instance.
+///
+/// Example:
+/// ```dart
+/// ProviderScope(
+///   overrides: [
+///     authRouterProvider.overrideWithValue(authRouter),
+///   ],
+///   child: MyApp(),
+/// )
+/// ```
+final authRouterProvider = Provider<AuthRouter>((ref) {
+  throw UnimplementedError(
+    'authRouterProvider must be overridden. '
+    'Override it in your ProviderScope with your AuthRouter instance.',
+  );
+});
+
+/// Extension for easy access to AuthRouter from WidgetRef.
+extension AuthRouterRef on WidgetRef {
+  /// Get the AuthRouter.
+  AuthRouter get authRouter => read(authRouterProvider);
+
+  /// Logout and navigate to login screen.
+  Future<void> logout(BuildContext context) => authRouter.logout(context);
+}
+
+/// Extension for easy access to AuthRouter from context using Riverpod.
 extension AuthRouterContext on BuildContext {
-  /// Get the AuthRouter from the widget tree.
+  /// Get the AuthRouter from Riverpod.
   ///
-  /// The AuthRouter must be provided above in the widget tree.
-  AuthRouter get authRouter => read<AuthRouter>();
+  /// Requires a ProviderScope ancestor with authRouterProvider overridden.
+  AuthRouter get authRouter {
+    final container = ProviderScope.containerOf(this);
+    return container.read(authRouterProvider);
+  }
 
   /// Logout and navigate to login screen.
   ///

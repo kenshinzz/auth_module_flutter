@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/auth_providers.dart';
 import '../../core/theme/auth_theme.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -22,7 +23,7 @@ import '../screens/login_screen.dart';
 /// ```
 ///
 /// For apps that need more control, you can use [AuthFlowBuilder] instead.
-class AuthFlow extends StatefulWidget {
+class AuthFlow extends ConsumerStatefulWidget {
   /// The widget to show after successful login.
   final Widget destination;
 
@@ -64,10 +65,10 @@ class AuthFlow extends StatefulWidget {
   });
 
   @override
-  State<AuthFlow> createState() => _AuthFlowState();
+  ConsumerState<AuthFlow> createState() => _AuthFlowState();
 }
 
-class _AuthFlowState extends State<AuthFlow> {
+class _AuthFlowState extends ConsumerState<AuthFlow> {
   bool _isCheckingAuth = true;
   bool _isAuthenticated = false;
   User? _currentUser;
@@ -83,7 +84,7 @@ class _AuthFlowState extends State<AuthFlow> {
   }
 
   Future<void> _checkExistingAuth() async {
-    final authRepo = context.read<AuthRepository>();
+    final authRepo = ref.read(authRepositoryProvider);
     final isLoggedIn = await authRepo.isLoggedIn();
 
     if (isLoggedIn) {
@@ -145,7 +146,7 @@ class _AuthFlowState extends State<AuthFlow> {
 ///   ),
 /// )
 /// ```
-class AuthFlowBuilder extends StatefulWidget {
+class AuthFlowBuilder extends ConsumerStatefulWidget {
   /// Builder for the authenticated state.
   final Widget Function(BuildContext context, User user) authenticated;
 
@@ -172,10 +173,10 @@ class AuthFlowBuilder extends StatefulWidget {
   });
 
   @override
-  State<AuthFlowBuilder> createState() => _AuthFlowBuilderState();
+  ConsumerState<AuthFlowBuilder> createState() => _AuthFlowBuilderState();
 }
 
-class _AuthFlowBuilderState extends State<AuthFlowBuilder> {
+class _AuthFlowBuilderState extends ConsumerState<AuthFlowBuilder> {
   bool _isCheckingAuth = true;
   bool _isAuthenticated = false;
   User? _currentUser;
@@ -191,7 +192,7 @@ class _AuthFlowBuilderState extends State<AuthFlowBuilder> {
   }
 
   Future<void> _checkExistingAuth() async {
-    final authRepo = context.read<AuthRepository>();
+    final authRepo = ref.read(authRepositoryProvider);
     final isLoggedIn = await authRepo.isLoggedIn();
 
     if (isLoggedIn) {

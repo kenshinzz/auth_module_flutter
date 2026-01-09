@@ -700,21 +700,21 @@ void main() {
       });
     });
 
-    group('.providers', () {
+    group('.providerOverrides', () {
       setUp(() {
         AuthModule.configure(baseUrl: 'https://api.example.com');
       });
 
-      test('should return list of providers', () {
-        final providers = AuthModule.providers;
+      test('should return list of provider overrides', () {
+        final overrides = AuthModule.providerOverrides;
 
-        expect(providers, isNotEmpty);
+        expect(overrides, isNotEmpty);
       });
 
-      test('should contain two providers', () {
-        final providers = AuthModule.providers;
+      test('should contain one override for authRepositoryProvider', () {
+        final overrides = AuthModule.providerOverrides;
 
-        expect(providers.length, 2);
+        expect(overrides.length, 1);
       });
     });
 

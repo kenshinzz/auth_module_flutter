@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n/generated/auth_l10n.dart';
+import '../../core/providers/auth_providers.dart';
 import '../../core/theme/auth_theme.dart';
 import '../../domain/entities/user.dart';
 import '../viewmodels/login_viewmodel.dart';
 import '../widgets/auth_text_field.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerWidget {
   final void Function(User user)? onLoginSuccess;
   final String? title;
   final String? subtitle;
@@ -24,10 +25,11 @@ class LoginScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final authTheme =
         theme ?? AuthThemeProvider.maybeOf(context) ?? const AuthTheme();
     final l10n = AuthL10n.of(context);
+    final viewModel = ref.watch(loginViewModelProvider);
 
     return Scaffold(
       backgroundColor: authTheme.backgroundColor,
@@ -37,25 +39,21 @@ class LoginScreen extends StatelessWidget {
             padding: authTheme.contentPadding,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: authTheme.maxFormWidth),
-              child: Consumer<LoginViewModel>(
-                builder: (context, viewModel, _) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildHeader(context, authTheme, l10n),
-                      SizedBox(height: authTheme.elementSpacing * 2.5),
-                      _buildEmailField(context, viewModel, authTheme, l10n),
-                      SizedBox(height: authTheme.elementSpacing),
-                      _buildPasswordField(context, viewModel, authTheme, l10n),
-                      SizedBox(height: authTheme.elementSpacing),
-                      _buildRememberMe(context, viewModel, authTheme, l10n),
-                      SizedBox(height: authTheme.elementSpacing * 1.5),
-                      _buildErrorMessage(context, viewModel, authTheme),
-                      _buildLoginButton(context, viewModel, authTheme, l10n),
-                    ],
-                  );
-                },
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeader(context, authTheme, l10n),
+                  SizedBox(height: authTheme.elementSpacing * 2.5),
+                  _buildEmailField(context, viewModel, authTheme, l10n),
+                  SizedBox(height: authTheme.elementSpacing),
+                  _buildPasswordField(context, viewModel, authTheme, l10n),
+                  SizedBox(height: authTheme.elementSpacing),
+                  _buildRememberMe(context, viewModel, authTheme, l10n),
+                  SizedBox(height: authTheme.elementSpacing * 1.5),
+                  _buildErrorMessage(context, viewModel, authTheme),
+                  _buildLoginButton(context, viewModel, authTheme, l10n),
+                ],
               ),
             ),
           ),

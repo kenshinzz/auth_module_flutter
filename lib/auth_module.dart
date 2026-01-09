@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:provider/provider.dart';
-import 'package:provider/single_child_widget.dart';
 
 import 'src/core/l10n/generated/auth_l10n.dart';
 import 'src/core/network/api_client.dart';
+import 'src/core/providers/auth_providers.dart';
 import 'src/core/theme/auth_theme.dart';
 import 'src/data/datasources/auth_remote_datasource.dart';
 import 'src/data/repositories/auth_repository_impl.dart';
@@ -17,6 +16,7 @@ export 'src/core/errors/failures.dart';
 export 'src/core/l10n/generated/auth_l10n.dart';
 export 'src/core/localization/auth_localizations.dart';
 export 'src/core/network/api_client.dart' show ApiException, ApiExceptionType;
+export 'src/core/providers/auth_providers.dart';
 export 'src/core/theme/auth_theme.dart';
 
 // Router
@@ -35,19 +35,13 @@ export 'src/presentation/widgets/auth_text_field.dart';
 
 /// Configuration class for the Auth Module.
 ///
-/// Usage:
+/// Usage with Riverpod:
 /// ```dart
 /// void main() {
-///   // Option 1: Single theme
+///   // 1. Configure the auth module
 ///   AuthModule.configure(
 ///     baseUrl: 'https://api.example.com',
 ///     loginEndpoint: '/auth/login',
-///     theme: AuthTheme(primaryColor: Colors.indigo),
-///   );
-///
-///   // Option 2: Light/dark theme with system detection
-///   AuthModule.configure(
-///     baseUrl: 'https://api.example.com',
 ///     themeData: AuthThemeData(
 ///       lightTheme: AuthTheme.light,
 ///       darkTheme: AuthTheme.dark,
@@ -55,9 +49,10 @@ export 'src/presentation/widgets/auth_text_field.dart';
 ///     ),
 ///   );
 ///
+///   // 2. Wrap your app with ProviderScope using providerOverrides
 ///   runApp(
-///     MultiProvider(
-///       providers: AuthModule.providers,
+///     ProviderScope(
+///       overrides: AuthModule.providerOverrides,
 ///       child: AuthModule.wrap(
 ///         child: MaterialApp(
 ///           localizationsDelegates: AuthL10n.localizationsDelegates,
@@ -112,7 +107,7 @@ class AuthModule {
 
   /// Configure the Auth Module with your API settings.
   ///
-  /// Must be called before using [providers] or [instance].
+  /// Must be called before using [providerOverrides] or [instance].
   ///
   /// Parameters:
   /// - [baseUrl]: The base URL for your API.
@@ -159,28 +154,22 @@ class AuthModule {
   }
 
   /// Resets the AuthModule singleton. Only for testing purposes.
-  @visibleForTesting
   static void reset() {
     _instance = null;
   }
 
-  /// Get the list of providers to use with MultiProvider.
+  /// Get the list of Riverpod provider overrides.
   ///
-  /// Example:
+  /// Use these overrides in your ProviderScope:
   /// ```dart
-  /// MultiProvider(
-  ///   providers: AuthModule.providers,
+  /// ProviderScope(
+  ///   overrides: AuthModule.providerOverrides,
   ///   child: MyApp(),
   /// )
   /// ```
-  static List<SingleChildWidget> get providers {
+  static List<Override> get providerOverrides {
     final module = instance;
-    return [
-      Provider<AuthRepository>.value(value: module._authRepository),
-      ChangeNotifierProvider<LoginViewModel>(
-        create: (_) => LoginViewModel(authRepository: module._authRepository),
-      ),
-    ];
+    return [authRepositoryProvider.overrideWithValue(module._authRepository)];
   }
 
   /// Get the AuthRepository instance.
@@ -215,8 +204,11 @@ class AuthModule {
   ///
   /// Example:
   /// ```dart
-  /// AuthModule.wrap(
-  ///   child: MaterialApp(...),
+  /// ProviderScope(
+  ///   overrides: AuthModule.providerOverrides,
+  ///   child: AuthModule.wrap(
+  ///     child: MaterialApp(...),
+  ///   ),
   /// )
   /// ```
   static Widget wrap({required Widget child}) {
