@@ -10,6 +10,10 @@ import 'src/presentation/viewmodels/login_viewmodel.dart';
 
 // Core
 export 'src/core/errors/failures.dart';
+export 'src/core/network/api_client.dart' show ApiException, ApiExceptionType;
+
+// Router
+export 'src/core/router/auth_routes.dart';
 
 // Domain
 export 'src/domain/entities/user.dart';
