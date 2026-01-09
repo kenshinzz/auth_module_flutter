@@ -1,0 +1,75 @@
+{
+  "@@locale": "en",
+  "signInTitle": "Welcome Back",
+  "@signInTitle": {
+    "description": "Title displayed on the sign in screen"
+  },
+  "signInSubtitle": "Sign in to continue",
+  "@signInSubtitle": {
+    "description": "Subtitle displayed on the sign in screen"
+  },
+  "emailLabel": "Email",
+  "@emailLabel": {
+    "description": "Label for the email input field"
+  },
+  "emailHint": "Enter your email",
+  "@emailHint": {
+    "description": "Hint text for the email input field"
+  },
+  "passwordLabel": "Password",
+  "@passwordLabel": {
+    "description": "Label for the password input field"
+  },
+  "passwordHint": "Enter your password",
+  "@passwordHint": {
+    "description": "Hint text for the password input field"
+  },
+  "rememberMe": "Remember me",
+  "@rememberMe": {
+    "description": "Label for the remember me checkbox"
+  },
+  "signInButton": "Sign In",
+  "@signInButton": {
+    "description": "Text for the sign in button"
+  },
+  "emailRequired": "Email is required",
+  "@emailRequired": {
+    "description": "Error message when email is empty"
+  },
+  "emailInvalid": "Please enter a valid email",
+  "@emailInvalid": {
+    "description": "Error message when email format is invalid"
+  },
+  "passwordRequired": "Password is required",
+  "@passwordRequired": {
+    "description": "Error message when password is empty"
+  },
+  "passwordTooShort": "Password must be at least 6 characters",
+  "@passwordTooShort": {
+    "description": "Error message when password is too short"
+  },
+  "fillAllFields": "Please fill in all fields correctly",
+  "@fillAllFields": {
+    "description": "Error message when form validation fails"
+  },
+  "invalidCredentials": "Invalid email or password",
+  "@invalidCredentials": {
+    "description": "Error message for authentication failure"
+  },
+  "networkError": "Network error. Please check your connection.",
+  "@networkError": {
+    "description": "Error message for network issues"
+  },
+  "serverError": "Server error. Please try again later.",
+  "@serverError": {
+    "description": "Error message for server issues"
+  },
+  "unknownError": "An unexpected error occurred",
+  "@unknownError": {
+    "description": "Error message for unknown errors"
+  },
+  "connectionTimeout": "Connection timeout. Please try again.",
+  "@connectionTimeout": {
+    "description": "Error message for connection timeout"
+  }
+}

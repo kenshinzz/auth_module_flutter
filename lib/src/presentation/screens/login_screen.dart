@@ -1,49 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/generated/auth_l10n.dart';
+import '../../core/theme/auth_theme.dart';
 import '../../domain/entities/user.dart';
 import '../viewmodels/login_viewmodel.dart';
 import '../widgets/auth_text_field.dart';
 
 class LoginScreen extends StatelessWidget {
   final void Function(User user)? onLoginSuccess;
-  final VoidCallback? onForgotPassword;
   final String? title;
   final String? subtitle;
+
+  /// Custom theme for this screen. If null, uses AuthThemeProvider or defaults.
+  final AuthTheme? theme;
 
   const LoginScreen({
     super.key,
     this.onLoginSuccess,
-    this.onForgotPassword,
     this.title,
     this.subtitle,
+    this.theme,
   });
 
   @override
   Widget build(BuildContext context) {
+    final authTheme =
+        theme ?? AuthThemeProvider.maybeOf(context) ?? const AuthTheme();
+    final l10n = AuthL10n.of(context);
+
     return Scaffold(
+      backgroundColor: authTheme.backgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: authTheme.contentPadding,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
+              constraints: BoxConstraints(maxWidth: authTheme.maxFormWidth),
               child: Consumer<LoginViewModel>(
                 builder: (context, viewModel, _) {
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildHeader(context),
-                      const SizedBox(height: 40),
-                      _buildEmailField(viewModel),
-                      const SizedBox(height: 16),
-                      _buildPasswordField(viewModel),
-                      const SizedBox(height: 16),
-                      _buildRememberMeAndForgot(context, viewModel),
-                      const SizedBox(height: 24),
-                      _buildErrorMessage(viewModel),
-                      _buildLoginButton(context, viewModel),
+                      _buildHeader(context, authTheme, l10n),
+                      SizedBox(height: authTheme.elementSpacing * 2.5),
+                      _buildEmailField(context, viewModel, authTheme, l10n),
+                      SizedBox(height: authTheme.elementSpacing),
+                      _buildPasswordField(context, viewModel, authTheme, l10n),
+                      SizedBox(height: authTheme.elementSpacing),
+                      _buildRememberMe(context, viewModel, authTheme, l10n),
+                      SizedBox(height: authTheme.elementSpacing * 1.5),
+                      _buildErrorMessage(context, viewModel, authTheme),
+                      _buildLoginButton(context, viewModel, authTheme, l10n),
                     ],
                   );
                 },
@@ -55,22 +64,42 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(
+    BuildContext context,
+    AuthTheme authTheme,
+    AuthL10n? l10n,
+  ) {
+    final displayTitle = title ?? l10n?.signInTitle ?? 'Welcome Back';
+    final displaySubtitle = subtitle ?? l10n?.signInSubtitle ?? '';
+
     return Column(
       children: [
+        if (authTheme.logo != null) ...[
+          SizedBox(height: authTheme.logoHeight, child: authTheme.logo),
+          SizedBox(height: authTheme.elementSpacing * 1.5),
+        ],
         Text(
-          title ?? 'Welcome Back',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+          displayTitle,
+          style:
+              authTheme.titleStyle ??
+              TextStyle(
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
+                color: authTheme.titleColor,
+                fontFamily: authTheme.fontFamily,
               ),
           textAlign: TextAlign.center,
         ),
-        if (subtitle != null) ...[
+        if (displaySubtitle.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            subtitle!,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
+            displaySubtitle,
+            style:
+                authTheme.subtitleStyle ??
+                TextStyle(
+                  fontSize: 16,
+                  color: authTheme.subtitleColor ?? Colors.grey.shade600,
+                  fontFamily: authTheme.fontFamily,
                 ),
             textAlign: TextAlign.center,
           ),
@@ -79,95 +108,125 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmailField(LoginViewModel viewModel) {
+  Widget _buildEmailField(
+    BuildContext context,
+    LoginViewModel viewModel,
+    AuthTheme authTheme,
+    AuthL10n? l10n,
+  ) {
     final isLoading = viewModel.state == LoginState.loading;
 
     return AuthTextField(
-      label: 'Email',
-      hint: 'Enter your email',
+      label: l10n?.emailLabel ?? 'Email',
+      hint: l10n?.emailHint ?? 'Enter your email',
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      errorText: viewModel.emailError,
+      errorText: viewModel.emailError != null
+          ? (l10n?.emailInvalid ?? 'Please enter a valid email')
+          : null,
       enabled: !isLoading,
       onChanged: viewModel.setEmail,
+      theme: authTheme,
     );
   }
 
-  Widget _buildPasswordField(LoginViewModel viewModel) {
+  Widget _buildPasswordField(
+    BuildContext context,
+    LoginViewModel viewModel,
+    AuthTheme authTheme,
+    AuthL10n? l10n,
+  ) {
     final isLoading = viewModel.state == LoginState.loading;
 
     return AuthTextField(
-      label: 'Password',
-      hint: 'Enter your password',
+      label: l10n?.passwordLabel ?? 'Password',
+      hint: l10n?.passwordHint ?? 'Enter your password',
       obscureText: viewModel.obscurePassword,
       textInputAction: TextInputAction.done,
-      errorText: viewModel.passwordError,
+      errorText: viewModel.passwordError != null
+          ? (l10n?.passwordTooShort ?? 'Password must be at least 6 characters')
+          : null,
       enabled: !isLoading,
       onChanged: viewModel.setPassword,
+      theme: authTheme,
       suffixIcon: IconButton(
         icon: Icon(
           viewModel.obscurePassword ? Icons.visibility_off : Icons.visibility,
-          color: Colors.grey,
+          color: authTheme.hintColor ?? Colors.grey,
         ),
         onPressed: isLoading ? null : viewModel.togglePasswordVisibility,
       ),
     );
   }
 
-  Widget _buildRememberMeAndForgot(BuildContext context, LoginViewModel viewModel) {
+  Widget _buildRememberMe(
+    BuildContext context,
+    LoginViewModel viewModel,
+    AuthTheme authTheme,
+    AuthL10n? l10n,
+  ) {
     final isLoading = viewModel.state == LoginState.loading;
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            SizedBox(
-              height: 24,
-              width: 24,
-              child: Checkbox(
-                value: viewModel.rememberMe,
-                onChanged: isLoading
-                    ? null
-                    : (value) => viewModel.setRememberMe(value ?? false),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Remember me',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-        if (onForgotPassword != null)
-          TextButton(
-            onPressed: isLoading ? null : onForgotPassword,
-            child: const Text('Forgot Password?'),
+        SizedBox(
+          height: 24,
+          width: 24,
+          child: Checkbox(
+            value: viewModel.rememberMe,
+            onChanged: isLoading
+                ? null
+                : (value) => viewModel.setRememberMe(value ?? false),
+            activeColor: authTheme.checkboxColor ?? authTheme.primaryColor,
           ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          l10n?.rememberMe ?? 'Remember me',
+          style: TextStyle(
+            color: authTheme.secondaryTextColor,
+            fontFamily: authTheme.fontFamily,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildErrorMessage(LoginViewModel viewModel) {
+  Widget _buildErrorMessage(
+    BuildContext context,
+    LoginViewModel viewModel,
+    AuthTheme authTheme,
+  ) {
     if (viewModel.errorMessage == null) return const SizedBox.shrink();
 
+    final errorBgColor =
+        authTheme.errorBackgroundColor ??
+        authTheme.errorColor.withValues(alpha: 0.1);
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: authTheme.elementSpacing),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.red.shade200),
+          color: errorBgColor,
+          borderRadius: BorderRadius.circular(authTheme.errorBorderRadius),
+          border: Border.all(
+            color: authTheme.errorColor.withValues(alpha: 0.3),
+          ),
         ),
         child: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+            Icon(Icons.error_outline, color: authTheme.errorColor, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 viewModel.errorMessage!,
-                style: TextStyle(color: Colors.red.shade700),
+                style:
+                    authTheme.errorTextStyle ??
+                    TextStyle(
+                      color: authTheme.errorColor,
+                      fontFamily: authTheme.fontFamily,
+                    ),
               ),
             ),
           ],
@@ -176,40 +235,62 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoginButton(BuildContext context, LoginViewModel viewModel) {
+  Widget _buildLoginButton(
+    BuildContext context,
+    LoginViewModel viewModel,
+    AuthTheme authTheme,
+    AuthL10n? l10n,
+  ) {
     final isLoading = viewModel.state == LoginState.loading;
 
     return SizedBox(
-      height: 50,
+      height: authTheme.buttonHeight,
       child: ElevatedButton(
         onPressed: isLoading
             ? null
             : () async {
                 final success = await viewModel.login();
-                if (success && viewModel.user != null && onLoginSuccess != null) {
+                if (success &&
+                    viewModel.user != null &&
+                    onLoginSuccess != null) {
                   onLoginSuccess!(viewModel.user!);
                 }
               },
-        style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
+        style:
+            authTheme.buttonStyle ??
+            ElevatedButton.styleFrom(
+              backgroundColor:
+                  authTheme.buttonBackgroundColor ?? authTheme.primaryColor,
+              foregroundColor: authTheme.buttonTextColor ?? Colors.white,
+              disabledBackgroundColor:
+                  (authTheme.buttonBackgroundColor ?? authTheme.primaryColor)
+                      .withValues(alpha: 0.6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  authTheme.buttonBorderRadius,
+                ),
+              ),
+            ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 24,
                 width: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    authTheme.buttonTextColor ?? Colors.white,
+                  ),
                 ),
               )
-            : const Text(
-                'Sign In',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+            : Text(
+                l10n?.signInButton ?? 'Sign In',
+                style:
+                    authTheme.buttonTextStyle ??
+                    TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: authTheme.fontFamily,
+                    ),
               ),
       ),
     );

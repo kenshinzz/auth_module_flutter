@@ -6,10 +6,12 @@ A reusable Flutter authentication module with a simple sign-in screen using MVVM
 
 - Login screen with email/password
 - Remember me functionality
-- Forgot password link
 - Form validation
 - Secure token storage
+- **Customizable theme** (colors, fonts, styling)
+- **Localization support** (English, Thai, Japanese, Chinese, Spanish)
 - MVVM architecture with Provider
+- GoRouter integration with auth guards
 - Easy to integrate into any Flutter project
 
 ## Installation
@@ -48,13 +50,27 @@ import 'package:auth_module/auth_module.dart';
 void main() {
   AuthModule.configure(
     baseUrl: 'https://your-api.com',
-    loginEndpoint: '/auth/login',  // optional, defaults to /auth/login
+    loginEndpoint: '/auth/login',
+    // Custom theme
+    theme: AuthTheme(
+      primaryColor: Colors.indigo,
+      inputBorderRadius: 12,
+      buttonBorderRadius: 12,
+      fontFamily: 'Poppins',
+    ),
   );
 
   runApp(
     MultiProvider(
       providers: AuthModule.providers,
-      child: MyApp(),
+      child: AuthModule.wrap(
+        child: MaterialApp(
+          // Add localization support
+          localizationsDelegates: AuthModule.localizationsDelegates,
+          supportedLocales: AuthModule.supportedLocales,
+          // ...
+        ),
+      ),
     ),
   );
 }
@@ -70,12 +86,7 @@ Navigator.push(
       title: 'Welcome Back',
       subtitle: 'Sign in to continue',
       onLoginSuccess: (user) {
-        // Handle successful login
         Navigator.pushReplacementNamed(context, '/home');
-      },
-      onForgotPassword: () {
-        // Navigate to forgot password
-        Navigator.pushNamed(context, '/forgot-password');
       },
     ),
   ),
@@ -96,6 +107,128 @@ final user = await authRepo.getCurrentUser();
 
 // Logout
 await authRepo.logout();
+```
+
+## Theme Customization
+
+Customize the look and feel of auth screens:
+
+```dart
+AuthTheme(
+  // Colors
+  primaryColor: Colors.indigo,
+  backgroundColor: Colors.white,
+  titleColor: Color(0xFF1E293B),
+  subtitleColor: Color(0xFF64748B),
+  errorColor: Colors.red,
+  
+  // Input fields
+  inputBorderColor: Colors.grey,
+  inputFocusedBorderColor: Colors.indigo,
+  inputBorderRadius: 12,
+  
+  // Button
+  buttonBackgroundColor: Colors.indigo,
+  buttonTextColor: Colors.white,
+  buttonBorderRadius: 12,
+  buttonHeight: 52,
+  
+  // Typography
+  fontFamily: 'Poppins',
+  titleStyle: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+  
+  // Logo
+  logo: Image.asset('assets/logo.png'),
+  logoHeight: 80,
+)
+```
+
+### Preset Themes
+
+```dart
+// Light theme (default)
+AuthTheme.light
+
+// Dark theme
+AuthTheme.dark
+```
+
+## Localization (l10n)
+
+The auth module uses Flutter's standard localization system with `.arb` files.
+
+### Supported Languages
+
+| Language | Locale |
+|----------|--------|
+| English | `en` (default) |
+| Thai | `th` |
+| Japanese | `ja` |
+| Chinese (Simplified) | `zh` |
+| Spanish | `es` |
+
+### Setup
+
+Add the localization delegates to your app:
+
+```dart
+MaterialApp(
+  localizationsDelegates: AuthModule.localizationsDelegates,
+  supportedLocales: AuthModule.supportedLocales,
+  // Or specify specific locales:
+  // supportedLocales: [Locale('en'), Locale('th')],
+)
+```
+
+### Access Localized Strings
+
+```dart
+// In your widgets
+final l10n = AuthL10n.of(context);
+Text(l10n?.signInTitle ?? 'Sign In');
+
+// Or use the extension
+final l10n = context.authL10n;
+```
+
+### Available Strings
+
+- `signInTitle` - Title on sign in screen
+- `signInSubtitle` - Subtitle on sign in screen
+- `emailLabel` - Email field label
+- `emailHint` - Email field hint
+- `passwordLabel` - Password field label
+- `passwordHint` - Password field hint
+- `rememberMe` - Remember me checkbox label
+- `signInButton` - Sign in button text
+- `emailInvalid` - Invalid email error
+- `passwordTooShort` - Password too short error
+- `invalidCredentials` - Invalid credentials error
+- `networkError` - Network error message
+- `serverError` - Server error message
+
+## GoRouter Integration
+
+```dart
+final authRouter = AuthRouter(
+  config: AuthRouterConfig(
+    homePath: '/home',
+    loginTitle: 'Welcome',
+    publicPaths: ['/about', '/terms'],
+    theme: AuthTheme.dark,
+  ),
+  authRepository: AuthModule.instance.authRepository,
+);
+
+final router = GoRouter(
+  initialLocation: '/home',
+  refreshListenable: authRouter,
+  redirect: authRouter.redirect,
+  routes: [
+    ...authRouter.routes,
+    GoRoute(path: '/home', builder: (_, __) => HomeScreen()),
+  ],
+);
 ```
 
 ## API Requirements
@@ -126,17 +259,26 @@ And return:
 lib/
 ├── auth_module.dart              # Public API
 └── src/
-    ├── core/                     # Core utilities
+    ├── core/
     │   ├── errors/failures.dart
-    │   └── network/api_client.dart
-    ├── data/                     # Data layer
+    │   ├── l10n/                 # Localization (.arb files)
+    │   │   ├── app_en.arb
+    │   │   ├── app_th.arb
+    │   │   ├── app_ja.arb
+    │   │   ├── app_zh.arb
+    │   │   ├── app_es.arb
+    │   │   └── generated/        # Generated l10n code
+    │   ├── network/api_client.dart
+    │   ├── router/auth_router.dart
+    │   └── theme/auth_theme.dart
+    ├── data/
     │   ├── models/
     │   ├── datasources/
     │   └── repositories/
-    ├── domain/                   # Domain layer
+    ├── domain/
     │   ├── entities/
     │   └── repositories/
-    └── presentation/             # Presentation layer (MVVM)
+    └── presentation/
         ├── viewmodels/
         ├── screens/
         └── widgets/

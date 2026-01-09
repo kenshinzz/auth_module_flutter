@@ -1,0 +1,21 @@
+{
+  "@@locale": "zh",
+  "signInTitle": "欢迎回来",
+  "signInSubtitle": "登录以继续",
+  "emailLabel": "邮箱",
+  "emailHint": "请输入邮箱",
+  "passwordLabel": "密码",
+  "passwordHint": "请输入密码",
+  "rememberMe": "记住我",
+  "signInButton": "登录",
+  "emailRequired": "请输入邮箱",
+  "emailInvalid": "请输入有效的邮箱地址",
+  "passwordRequired": "请输入密码",
+  "passwordTooShort": "密码至少需要6个字符",
+  "fillAllFields": "请正确填写所有字段",
+  "invalidCredentials": "邮箱或密码错误",
+  "networkError": "网络错误，请检查您的连接",
+  "serverError": "服务器错误，请稍后重试",
+  "unknownError": "发生未知错误",
+  "connectionTimeout": "连接超时，请重试"
+}

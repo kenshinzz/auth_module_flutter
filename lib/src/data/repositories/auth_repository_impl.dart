@@ -46,12 +46,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
       if (rememberMe) {
         await secureStorage.write(key: _tokenKey, value: user.token);
-        await secureStorage.write(key: _userKey, value: jsonEncode(UserModel(
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          token: user.token,
-        ).toJson()));
+        await secureStorage.write(
+          key: _userKey,
+          value: jsonEncode(
+            UserModel(
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              token: user.token,
+            ).toJson(),
+          ),
+        );
         await secureStorage.write(key: _rememberMeKey, value: 'true');
       }
     }

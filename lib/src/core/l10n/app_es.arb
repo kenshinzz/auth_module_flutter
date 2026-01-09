@@ -1,0 +1,21 @@
+{
+  "@@locale": "es",
+  "signInTitle": "Bienvenido",
+  "signInSubtitle": "Inicia sesión para continuar",
+  "emailLabel": "Correo electrónico",
+  "emailHint": "Ingresa tu correo",
+  "passwordLabel": "Contraseña",
+  "passwordHint": "Ingresa tu contraseña",
+  "rememberMe": "Recuérdame",
+  "signInButton": "Iniciar sesión",
+  "emailRequired": "El correo es requerido",
+  "emailInvalid": "Por favor ingresa un correo válido",
+  "passwordRequired": "La contraseña es requerida",
+  "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
+  "fillAllFields": "Por favor completa todos los campos correctamente",
+  "invalidCredentials": "Correo o contraseña inválidos",
+  "networkError": "Error de red. Por favor verifica tu conexión.",
+  "serverError": "Error del servidor. Por favor intenta más tarde.",
+  "unknownError": "Ocurrió un error inesperado",
+  "connectionTimeout": "Tiempo de conexión agotado. Por favor intenta de nuevo."
+}

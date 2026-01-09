@@ -1,0 +1,21 @@
+{
+  "@@locale": "ja",
+  "signInTitle": "おかえりなさい",
+  "signInSubtitle": "サインインして続行",
+  "emailLabel": "メールアドレス",
+  "emailHint": "メールアドレスを入力",
+  "passwordLabel": "パスワード",
+  "passwordHint": "パスワードを入力",
+  "rememberMe": "ログイン状態を保持",
+  "signInButton": "サインイン",
+  "emailRequired": "メールアドレスを入力してください",
+  "emailInvalid": "有効なメールアドレスを入力してください",
+  "passwordRequired": "パスワードを入力してください",
+  "passwordTooShort": "パスワードは6文字以上必要です",
+  "fillAllFields": "すべての項目を正しく入力してください",
+  "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+  "networkError": "ネットワークエラー。接続を確認してください。",
+  "serverError": "サーバーエラー。後でもう一度お試しください。",
+  "unknownError": "予期しないエラーが発生しました",
+  "connectionTimeout": "接続がタイムアウトしました。もう一度お試しください。"
+}
