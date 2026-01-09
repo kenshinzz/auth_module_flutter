@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
@@ -155,6 +156,12 @@ class AuthModule {
       );
     }
     return _instance!;
+  }
+
+  /// Resets the AuthModule singleton. Only for testing purposes.
+  @visibleForTesting
+  static void reset() {
+    _instance = null;
   }
 
   /// Get the list of providers to use with MultiProvider.
