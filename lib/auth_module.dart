@@ -37,22 +37,32 @@ export 'src/presentation/widgets/auth_text_field.dart';
 /// Usage:
 /// ```dart
 /// void main() {
+///   // Option 1: Single theme
 ///   AuthModule.configure(
 ///     baseUrl: 'https://api.example.com',
 ///     loginEndpoint: '/auth/login',
-///     theme: AuthTheme(
-///       primaryColor: Colors.indigo,
-///       fontFamily: 'Poppins',
+///     theme: AuthTheme(primaryColor: Colors.indigo),
+///   );
+///
+///   // Option 2: Light/dark theme with system detection
+///   AuthModule.configure(
+///     baseUrl: 'https://api.example.com',
+///     themeData: AuthThemeData(
+///       lightTheme: AuthTheme.light,
+///       darkTheme: AuthTheme.dark,
+///       themeMode: AuthThemeMode.system,
 ///     ),
 ///   );
 ///
 ///   runApp(
 ///     MultiProvider(
 ///       providers: AuthModule.providers,
-///       child: MaterialApp(
-///         localizationsDelegates: AuthL10n.localizationsDelegates,
-///         supportedLocales: AuthL10n.supportedLocales,
-///         // ...
+///       child: AuthModule.wrap(
+///         child: MaterialApp(
+///           localizationsDelegates: AuthL10n.localizationsDelegates,
+///           supportedLocales: AuthL10n.supportedLocales,
+///           // ...
+///         ),
 ///       ),
 ///     ),
 ///   );
@@ -63,13 +73,20 @@ class AuthModule {
 
   final String baseUrl;
   final String loginEndpoint;
-  final AuthTheme theme;
+
+  /// Single theme (use when not using themeData).
+  final AuthTheme? theme;
+
+  /// Light/dark theme configuration (preferred over theme).
+  final AuthThemeData? themeData;
+
   final AuthRepository _authRepository;
 
   AuthModule._({
     required this.baseUrl,
     required this.loginEndpoint,
-    required this.theme,
+    this.theme,
+    this.themeData,
   }) : _authRepository = _createAuthRepository(baseUrl, loginEndpoint);
 
   static AuthRepository _createAuthRepository(
@@ -99,16 +116,31 @@ class AuthModule {
   /// Parameters:
   /// - [baseUrl]: The base URL for your API.
   /// - [loginEndpoint]: The endpoint for login (defaults to '/auth/login').
-  /// - [theme]: Custom theme for auth screens (colors, fonts, styling).
+  /// - [theme]: Single theme for auth screens (use OR themeData, not both).
+  /// - [themeData]: Light/dark theme configuration with mode selection.
+  ///
+  /// For automatic dark/light theme support, use [themeData]:
+  /// ```dart
+  /// AuthModule.configure(
+  ///   baseUrl: 'https://api.example.com',
+  ///   themeData: AuthThemeData(
+  ///     lightTheme: AuthTheme.light,
+  ///     darkTheme: AuthTheme.dark,
+  ///     themeMode: AuthThemeMode.system,
+  ///   ),
+  /// );
+  /// ```
   static void configure({
     required String baseUrl,
     String loginEndpoint = '/auth/login',
-    AuthTheme theme = const AuthTheme(),
+    AuthTheme? theme,
+    AuthThemeData? themeData,
   }) {
     _instance = AuthModule._(
       baseUrl: baseUrl,
       loginEndpoint: loginEndpoint,
       theme: theme,
+      themeData: themeData,
     );
   }
 
@@ -171,6 +203,9 @@ class AuthModule {
 
   /// Wrap your app with this widget to provide theme to all auth screens.
   ///
+  /// Automatically handles light/dark theme switching if [themeData] was
+  /// configured with [AuthThemeMode.system].
+  ///
   /// Example:
   /// ```dart
   /// AuthModule.wrap(
@@ -179,6 +214,19 @@ class AuthModule {
   /// ```
   static Widget wrap({required Widget child}) {
     final module = instance;
-    return AuthThemeProvider(theme: module.theme, child: child);
+
+    // Prefer themeData for adaptive theming
+    if (module.themeData != null) {
+      return AuthThemeProvider.adaptive(
+        themeData: module.themeData!,
+        child: child,
+      );
+    }
+
+    // Fall back to single theme
+    return AuthThemeProvider(
+      theme: module.theme ?? const AuthTheme(),
+      child: child,
+    );
   }
 }

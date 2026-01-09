@@ -153,6 +153,48 @@ AuthTheme.light
 AuthTheme.dark
 ```
 
+### Dark/Light Mode Support
+
+Use `AuthThemeData` for automatic dark/light mode switching:
+
+```dart
+AuthModule.configure(
+  baseUrl: 'https://your-api.com',
+  themeData: AuthThemeData(
+    lightTheme: AuthTheme(
+      primaryColor: Colors.indigo,
+      backgroundColor: Colors.white,
+      // ... other light theme properties
+    ),
+    darkTheme: AuthTheme(
+      primaryColor: Colors.indigoAccent,
+      backgroundColor: Color(0xFF121212),
+      // ... other dark theme properties
+    ),
+    // Theme mode options:
+    // - AuthThemeMode.light   : Always use light theme
+    // - AuthThemeMode.dark    : Always use dark theme
+    // - AuthThemeMode.system  : Follow system setting (default)
+    themeMode: AuthThemeMode.system,
+  ),
+);
+```
+
+Make sure to wrap your app with `AuthModule.wrap()`:
+
+```dart
+AuthModule.wrap(
+  child: MaterialApp(
+    theme: ThemeData.light(),
+    darkTheme: ThemeData.dark(),
+    themeMode: ThemeMode.system,
+    // ...
+  ),
+)
+```
+
+The auth screens will automatically switch themes based on the system brightness setting.
+
 ## Localization (l10n)
 
 The auth module uses Flutter's standard localization system with `.arb` files.

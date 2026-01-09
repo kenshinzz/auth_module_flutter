@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+/// Theme mode for the Auth Module.
+enum AuthThemeMode {
+  /// Always use light theme.
+  light,
+
+  /// Always use dark theme.
+  dark,
+
+  /// Follow system brightness setting.
+  system,
+}
+
 /// Theme configuration for the Auth Module.
 ///
 /// Provides customization for colors, typography, and component styling.
@@ -269,32 +281,132 @@ class AuthTheme {
     buttonTextColor: Color(0xFF121212),
     secondaryTextColor: Color(0xFFB0B0B0),
   );
+
+  /// Resolves theme based on brightness.
+  ///
+  /// Use this to get the appropriate theme based on system brightness:
+  /// ```dart
+  /// final theme = AuthTheme.resolve(
+  ///   brightness: MediaQuery.platformBrightnessOf(context),
+  ///   lightTheme: myLightTheme,
+  ///   darkTheme: myDarkTheme,
+  /// );
+  /// ```
+  static AuthTheme resolve({
+    required Brightness brightness,
+    AuthTheme? lightTheme,
+    AuthTheme? darkTheme,
+  }) {
+    return brightness == Brightness.dark
+        ? (darkTheme ?? AuthTheme.dark)
+        : (lightTheme ?? AuthTheme.light);
+  }
+}
+
+/// Provides light and dark theme configuration.
+class AuthThemeData {
+  /// Theme to use in light mode.
+  final AuthTheme lightTheme;
+
+  /// Theme to use in dark mode.
+  final AuthTheme darkTheme;
+
+  /// How to determine which theme to use.
+  final AuthThemeMode themeMode;
+
+  const AuthThemeData({
+    this.lightTheme = AuthTheme.light,
+    this.darkTheme = AuthTheme.dark,
+    this.themeMode = AuthThemeMode.system,
+  });
+
+  /// Creates theme data with a single theme for both modes.
+  const AuthThemeData.single(AuthTheme theme)
+    : lightTheme = theme,
+      darkTheme = theme,
+      themeMode = AuthThemeMode.light;
+
+  /// Resolves the appropriate theme based on the mode and system brightness.
+  AuthTheme resolve(Brightness platformBrightness) {
+    switch (themeMode) {
+      case AuthThemeMode.light:
+        return lightTheme;
+      case AuthThemeMode.dark:
+        return darkTheme;
+      case AuthThemeMode.system:
+        return platformBrightness == Brightness.dark ? darkTheme : lightTheme;
+    }
+  }
 }
 
 /// InheritedWidget to provide AuthTheme down the widget tree.
-class AuthThemeProvider extends InheritedWidget {
-  final AuthTheme theme;
+///
+/// Automatically resolves light/dark theme based on system brightness
+/// when using [AuthThemeData].
+class AuthThemeProvider extends StatelessWidget {
+  /// Single theme to use (ignores system brightness).
+  final AuthTheme? theme;
 
+  /// Light and dark theme configuration (responds to system brightness).
+  final AuthThemeData? themeData;
+
+  final Widget child;
+
+  /// Creates a provider with a single theme.
   const AuthThemeProvider({
     super.key,
-    required this.theme,
-    required super.child,
-  });
+    required AuthTheme this.theme,
+    required this.child,
+  }) : themeData = null;
 
-  static AuthTheme of(BuildContext context) {
-    final provider = context
-        .dependOnInheritedWidgetOfExactType<AuthThemeProvider>();
-    return provider?.theme ?? const AuthTheme();
-  }
-
-  static AuthTheme? maybeOf(BuildContext context) {
-    final provider = context
-        .dependOnInheritedWidgetOfExactType<AuthThemeProvider>();
-    return provider?.theme;
-  }
+  /// Creates a provider with light/dark theme support.
+  const AuthThemeProvider.adaptive({
+    super.key,
+    required AuthThemeData this.themeData,
+    required this.child,
+  }) : theme = null;
 
   @override
-  bool updateShouldNotify(AuthThemeProvider oldWidget) {
+  Widget build(BuildContext context) {
+    final resolvedTheme = _resolveTheme(context);
+    return _AuthThemeInherited(theme: resolvedTheme, child: child);
+  }
+
+  AuthTheme _resolveTheme(BuildContext context) {
+    if (theme != null) {
+      return theme!;
+    }
+    if (themeData != null) {
+      final brightness = MediaQuery.platformBrightnessOf(context);
+      return themeData!.resolve(brightness);
+    }
+    return const AuthTheme();
+  }
+
+  /// Gets the current AuthTheme from the widget tree.
+  ///
+  /// Returns a default AuthTheme if no provider is found.
+  static AuthTheme of(BuildContext context) {
+    final inherited = context
+        .dependOnInheritedWidgetOfExactType<_AuthThemeInherited>();
+    return inherited?.theme ?? const AuthTheme();
+  }
+
+  /// Gets the current AuthTheme from the widget tree, if available.
+  static AuthTheme? maybeOf(BuildContext context) {
+    final inherited = context
+        .dependOnInheritedWidgetOfExactType<_AuthThemeInherited>();
+    return inherited?.theme;
+  }
+}
+
+class _AuthThemeInherited extends InheritedWidget {
+  final AuthTheme theme;
+
+  const _AuthThemeInherited({required this.theme, required super.child});
+
+  @override
+  bool updateShouldNotify(_AuthThemeInherited oldWidget) {
     return theme != oldWidget.theme;
   }
 }
