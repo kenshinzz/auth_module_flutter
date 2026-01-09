@@ -22,8 +22,8 @@ Add to your `pubspec.yaml`:
 dependencies:
   auth_module:
     git:
-      url: https://github.com/YOUR_USERNAME/auth_module.git
-      ref: main  # or specific tag/commit
+      url: https://github.com/kenshinzz/auth_module_flutter.git
+      ref: main
 ```
 
 ### Option 2: Local path (for development)
