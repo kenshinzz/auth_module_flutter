@@ -11,6 +11,7 @@ A reusable Flutter authentication module with a simple sign-in screen using MVVM
 - **Customizable theme** (colors, fonts, styling)
 - **Dark/Light mode support** (system, manual)
 - **Localization support** (English, Thai, Japanese, Chinese, Spanish)
+- **Splash screen support**
 - MVVM architecture with **Riverpod**
 - GoRouter integration with auth guards
 - Easy to integrate into any Flutter project
@@ -37,11 +38,9 @@ dependencies:
     path: ../auth_module
 ```
 
-## Usage
+## Quick Start
 
-### 1. Configure the module
-
-In your `main.dart`:
+### Basic Setup (Minimal)
 
 ```dart
 import 'package:flutter/material.dart';
@@ -53,72 +52,206 @@ void main() {
   AuthModule.configure(
     baseUrl: 'https://your-api.com',
     loginEndpoint: '/auth/login',
-    // Optional: Custom theme
-    theme: AuthTheme(
-      primaryColor: Colors.indigo,
-      inputBorderRadius: 12,
-      buttonBorderRadius: 12,
-      fontFamily: 'Poppins',
-    ),
   );
 
-  // 2. Wrap with ProviderScope and provide auth overrides
+  // 2. Wrap with ProviderScope
   runApp(
     ProviderScope(
       overrides: AuthModule.providerOverrides,
-      child: AuthModule.wrap(
-        child: MaterialApp(
-          // Add localization support
-          localizationsDelegates: AuthModule.localizationsDelegates,
-          supportedLocales: AuthModule.supportedLocales,
-          // ...
-        ),
-      ),
+      child: const MyApp(),
     ),
   );
 }
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      localizationsDelegates: AuthModule.localizationsDelegates,
+      supportedLocales: AuthModule.supportedLocales,
+      home: LoginScreen(
+        onLoginSuccess: (user) {
+          // Navigate to home
+        },
+      ),
+    );
+  }
+}
 ```
 
-### 2. Navigate to LoginScreen
+## Full Setup with GoRouter
+
+For a complete authentication flow with route guards, splash screen, and theme switching:
 
 ```dart
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => LoginScreen(
-      title: 'Welcome Back',
-      subtitle: 'Sign in to continue',
-      onLoginSuccess: (user) {
-        Navigator.pushReplacementNamed(context, '/home');
-      },
-    ),
-  ),
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:auth_module/auth_module.dart';
+
+// Define your themes
+const authLightTheme = AuthTheme(
+  primaryColor: Color(0xFF6366F1),
+  backgroundColor: Color(0xFFF8FAFC),
+  titleColor: Color(0xFF1E293B),
+  inputBorderRadius: 12,
+  buttonBorderRadius: 12,
 );
-```
 
-### 3. Access user data
+const authDarkTheme = AuthTheme(
+  primaryColor: Color(0xFF818CF8),
+  backgroundColor: Color(0xFF0F172A),
+  titleColor: Color(0xFFF1F5F9),
+  inputBorderRadius: 12,
+  buttonBorderRadius: 12,
+);
 
-```dart
-// Using Riverpod
-final authRepo = ref.read(authRepositoryProvider);
+void main() {
+  AuthModule.configure(
+    baseUrl: 'https://your-api.com',
+    loginEndpoint: '/auth/login',
+  );
 
-// Check if logged in
-final isLoggedIn = await authRepo.isLoggedIn();
+  runApp(
+    ProviderScope(
+      overrides: AuthModule.providerOverrides,
+      child: const MyApp(),
+    ),
+  );
+}
 
-// Get current user
-final user = await authRepo.getCurrentUser();
+class MyApp extends ConsumerStatefulWidget {
+  const MyApp({super.key});
 
-// Logout
-await authRepo.logout();
+  @override
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
 
-// Or use the async providers
-final isLoggedIn = ref.watch(isLoggedInProvider);
-final currentUser = ref.watch(currentUserProvider);
+class _MyAppState extends ConsumerState<MyApp> {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  // Create AuthRouter for route guards
+  late final AuthRouter authRouter = AuthRouter(
+    config: AuthRouterConfig(
+      homePath: '/home',
+      publicPaths: ['/splash'],
+    ),
+    authRepository: AuthModule.instance.authRepository,
+  );
+
+  // Create GoRouter with auth integration
+  late final GoRouter router = GoRouter(
+    initialLocation: '/splash',
+    refreshListenable: authRouter,
+    redirect: authRouter.redirect,
+    routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (_, __) => SplashScreen(
+          onInitComplete: () {
+            if (authRouter.isAuthenticated) {
+              _.go('/home');
+            } else {
+              _.go('/login');
+            }
+          },
+        ),
+      ),
+      ...authRouter.routes,
+      GoRoute(path: '/home', builder: (_, __) => HomeScreen()),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    // Create theme data for adaptive theming
+    final authThemeData = AuthThemeData(
+      lightTheme: authLightTheme,
+      darkTheme: authDarkTheme,
+      themeMode: _themeMode == ThemeMode.dark
+          ? AuthThemeMode.dark
+          : _themeMode == ThemeMode.light
+              ? AuthThemeMode.light
+              : AuthThemeMode.system,
+    );
+
+    return ProviderScope(
+      overrides: [authRouterProvider.overrideWithValue(authRouter)],
+      // Use AuthThemeProvider.adaptive for dark/light theme support
+      child: AuthThemeProvider.adaptive(
+        themeData: authThemeData,
+        child: MaterialApp.router(
+          localizationsDelegates: AuthModule.localizationsDelegates,
+          supportedLocales: AuthModule.supportedLocales,
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
+          themeMode: _themeMode,
+          routerConfig: router,
+        ),
+      ),
+    );
+  }
+}
 ```
 
 ## Theme Customization
 
-Customize the look and feel of auth screens:
+### Option 1: Single Theme
+
+```dart
+AuthModule.configure(
+  baseUrl: 'https://your-api.com',
+  theme: AuthTheme(
+    primaryColor: Colors.indigo,
+    backgroundColor: Colors.white,
+    inputBorderRadius: 12,
+    buttonBorderRadius: 12,
+  ),
+);
+```
+
+### Option 2: Adaptive Dark/Light Theme (Recommended)
+
+Use `AuthThemeProvider.adaptive` directly for full control:
+
+```dart
+AuthThemeProvider.adaptive(
+  themeData: AuthThemeData(
+    lightTheme: AuthTheme(
+      primaryColor: Colors.indigo,
+      backgroundColor: Colors.white,
+    ),
+    darkTheme: AuthTheme(
+      primaryColor: Colors.indigoAccent,
+      backgroundColor: Color(0xFF121212),
+    ),
+    themeMode: AuthThemeMode.system, // or .light, .dark
+  ),
+  child: MaterialApp(...),
+)
+```
+
+### Option 3: Using AuthModule.wrap() (Simple)
+
+If you configure `themeData` in `AuthModule.configure()`, you can use the convenience wrapper:
+
+```dart
+AuthModule.configure(
+  baseUrl: 'https://your-api.com',
+  themeData: AuthThemeData(
+    lightTheme: AuthTheme.light,
+    darkTheme: AuthTheme.dark,
+    themeMode: AuthThemeMode.system,
+  ),
+);
+
+// Then wrap your app
+AuthModule.wrap(
+  child: MaterialApp(...),
+)
+```
+
+### All Theme Properties
 
 ```dart
 AuthTheme(
@@ -132,6 +265,7 @@ AuthTheme(
   // Input fields
   inputBorderColor: Colors.grey,
   inputFocusedBorderColor: Colors.indigo,
+  inputBackgroundColor: Colors.white,
   inputBorderRadius: 12,
   
   // Button
@@ -143,6 +277,7 @@ AuthTheme(
   // Typography
   fontFamily: 'Poppins',
   titleStyle: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+  labelColor: Colors.black87,
   
   // Logo
   logo: Image.asset('assets/logo.png'),
@@ -160,50 +295,28 @@ AuthTheme.light
 AuthTheme.dark
 ```
 
-### Dark/Light Mode Support
-
-Use `AuthThemeData` for automatic dark/light mode switching:
+## Access User Data
 
 ```dart
-AuthModule.configure(
-  baseUrl: 'https://your-api.com',
-  themeData: AuthThemeData(
-    lightTheme: AuthTheme(
-      primaryColor: Colors.indigo,
-      backgroundColor: Colors.white,
-      // ... other light theme properties
-    ),
-    darkTheme: AuthTheme(
-      primaryColor: Colors.indigoAccent,
-      backgroundColor: Color(0xFF121212),
-      // ... other dark theme properties
-    ),
-    // Theme mode options:
-    // - AuthThemeMode.light   : Always use light theme
-    // - AuthThemeMode.dark    : Always use dark theme
-    // - AuthThemeMode.system  : Follow system setting (default)
-    themeMode: AuthThemeMode.system,
-  ),
-);
+// Using Riverpod providers
+final authRepo = ref.read(authRepositoryProvider);
+
+// Check if logged in
+final isLoggedIn = await authRepo.isLoggedIn();
+
+// Get current user
+final user = await authRepo.getCurrentUser();
+
+// Logout
+await authRepo.logout();
+
+// Or use the async providers
+final isLoggedIn = ref.watch(isLoggedInProvider);
+final currentUser = ref.watch(currentUserProvider);
+
+// Logout from anywhere using context extension
+await context.logout();
 ```
-
-Make sure to wrap your app with `AuthModule.wrap()`:
-
-```dart
-ProviderScope(
-  overrides: AuthModule.providerOverrides,
-  child: AuthModule.wrap(
-    child: MaterialApp(
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system,
-      // ...
-    ),
-  ),
-)
-```
-
-The auth screens will automatically switch themes based on the system brightness setting.
 
 ## Localization (l10n)
 
@@ -256,6 +369,34 @@ Text(l10n?.signInTitle ?? 'Sign In');
 - `networkError` - Network error message
 - `serverError` - Server error message
 
+## Splash Screen
+
+Add a splash screen as the initial route to check auth status:
+
+```dart
+GoRoute(
+  path: '/splash',
+  builder: (context, state) => SplashScreen(
+    onInitComplete: () {
+      if (authRouter.isAuthenticated) {
+        context.go('/home');
+      } else {
+        context.go('/login');
+      }
+    },
+  ),
+),
+```
+
+Make sure to add `/splash` to `publicPaths` in your `AuthRouterConfig`:
+
+```dart
+AuthRouterConfig(
+  homePath: '/home',
+  publicPaths: ['/splash', '/about'],  // Splash doesn't require auth
+)
+```
+
 ## GoRouter Integration
 
 ```dart
@@ -264,7 +405,7 @@ final authRouter = AuthRouter(
   config: AuthRouterConfig(
     homePath: '/home',
     loginTitle: 'Welcome',
-    publicPaths: ['/about', '/terms'],
+    publicPaths: ['/splash', '/about', '/terms'],
     theme: AuthTheme.dark,
   ),
   authRepository: AuthModule.instance.authRepository,
@@ -272,10 +413,22 @@ final authRouter = AuthRouter(
 
 // 2. Create GoRouter with auth integration
 final router = GoRouter(
-  initialLocation: '/home',
+  initialLocation: '/splash',  // Start with splash screen
   refreshListenable: authRouter,
   redirect: authRouter.redirect,
   routes: [
+    GoRoute(
+      path: '/splash',
+      builder: (context, _) => SplashScreen(
+        onInitComplete: () {
+          if (authRouter.isAuthenticated) {
+            context.go('/home');
+          } else {
+            context.go('/login');
+          }
+        },
+      ),
+    ),
     ...authRouter.routes,
     GoRoute(path: '/home', builder: (_, __) => HomeScreen()),
   ],

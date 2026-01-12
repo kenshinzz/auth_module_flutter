@@ -166,6 +166,7 @@ class LoginScreen extends ConsumerWidget {
     final isLoading = viewModel.state == LoginState.loading;
 
     return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         SizedBox(
           height: 24,
